@@ -1,0 +1,30 @@
+{
+  "functions": [
+    {
+      "id": "DELIVERY_DATE",
+      "name": "DELIVERY_DATE",
+      "description": "最短納品日を算出します",
+      "parameters": [
+        {
+          "name": "orderDate",
+          "description": "受注日（例：2026/03/07）",
+          "type": "string"
+        },
+        {
+          "name": "makerCode",
+          "description": "メーカーコード（例：MK001）",
+          "type": "string"
+        },
+        {
+          "name": "customerCode",
+          "description": "得意先コード（例：CS001）",
+          "type": "string"
+        }
+      ],
+      "result": {
+        "type": "string",
+        "dimensionality": "scalar"
+      }
+    }
+  ]
+}
