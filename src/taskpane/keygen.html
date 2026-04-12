@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>DeliveryCalc キー生成ツール</title>
+  <style>
+    body { font-family: sans-serif; background: #f8f8f8; margin: 0; padding: 40px; }
+    .container { max-width: 500px; margin: 0 auto; background: white; border-radius: 8px; padding: 32px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    h1 { color: #217346; font-size: 20px; margin: 0 0 24px; }
+    label { font-size: 13px; color: #555; display: block; margin-bottom: 4px; font-weight: bold; }
+    input, select { width: 100%; padding: 10px; margin-bottom: 16px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+    .btn { width: 100%; padding: 12px; background: #217346; color: white; border: none; border-radius: 4px; font-size: 14px; font-weight: bold; cursor: pointer; }
+    .btn:hover { background: #1a5c38; }
+    .result { margin-top: 24px; padding: 16px; background: #f0f7f4; border-left: 4px solid #217346; border-radius: 4px; display: none; }
+    .result-key { font-size: 24px; font-weight: bold; color: #217346; letter-spacing: 2px; margin: 8px 0; }
+    .result-info { font-size: 13px; color: #555; margin-top: 8px; }
+    .copy-btn { margin-top: 12px; padding: 8px 16px; background: #555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; }
+    .copy-btn:hover { background: #333; }
+    .warning { margin-top: 24px; padding: 12px; background: #fff3cd; border-radius: 4px; font-size: 12px; color: #856404; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔑 DeliveryCalc キー生成ツール</h1>
+
+    <label>顧客メールアドレス</label>
+    <input type="email" id="input-email" placeholder="例：customer@email.com" />
+
+    <label>有効月</label>
+    <select id="input-month"></select>
+
+    <button class="btn" onclick="generate()">ライセンスキーを生成する</button>
+
+    <div class="result" id="result">
+      <div style="font-size:13px; color:#555;">生成されたライセンスキー</div>
+      <div class="result-key" id="result-key"></div>
+      <div class="result-info" id="result-info"></div>
+      <button class="copy-btn" onclick="copyKey()">📋 コピー</button>
+    </div>
+
+    <div class="warning">
+      ⚠️ このツールは社外秘です。キー生成に使用する秘密キーが含まれているため、顧客に共有しないでください。
+    </div>
+  </div>
+
+  <script>
+    const SECRET = "DC2026SECRET"; // taskpane.jsと同じ値にすること
+
+    // 有効月のセレクトボックスを生成（今月〜12ヶ月先）
+    window.onload = () => {
+      const select = document.getElementById("input-month");
+      const now = new Date();
+      for (let i = 0; i < 13; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+        const yyyymm = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}`;
+        const label  = `${d.getFullYear()}年${d.getMonth() + 1}月`;
+        const option = document.createElement("option");
+        option.value = yyyymm;
+        option.textContent = label;
+        select.appendChild(option);
+      }
+    };
+
+    async function sha256(message) {
+      const msgBuffer = new TextEncoder().encode(message);
+      const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+    }
+
+    async function generateKey(email, yyyymm) {
+      const raw = await sha256(email.toLowerCase() + yyyymm + SECRET);
+      const chars = raw.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12);
+      return `DC-${chars.slice(0,4)}-${chars.slice(4,8)}-${chars.slice(8,12)}`;
+    }
+
+    async function generate() {
+      const email  = document.getElementById("input-email").value.trim();
+      const yyyymm = document.getElementById("input-month").value;
+
+      if (!email) {
+        alert("メールアドレスを入力してください");
+        return;
+      }
+
+      const key = await generateKey(email, yyyymm);
+      const year  = yyyymm.slice(0, 4);
+      const month = yyyymm.slice(4, 6);
+const expiryMonth = new Date(Number(year), Number(month) + 1, 0);
+      const eYear  = expiryMonth.getFullYear();
+      const eMonth = String(expiryMonth.getMonth() + 1).padStart(2, "0");
+      const eDay   = String(expiryMonth.getDate()).padStart(2, "0");
+
+      document.getElementById("result-key").textContent = key;
+      document.getElementById("result-info").innerHTML =
+        `対象：${email}<br>有効期限：${eYear}/${eMonth}/${eDay}（3ヶ月間有効）`;
+      document.getElementById("result").style.display = "block";
+    }
+
+    function copyKey() {
+      const key = document.getElementById("result-key").textContent;
+      navigator.clipboard.writeText(key).then(() => {
+        alert("コピーしました：" + key);
+      });
+    }
+  </script>
+</body>
+</html>
